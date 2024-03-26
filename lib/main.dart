@@ -24,6 +24,7 @@ class PomodoroScreen extends StatefulWidget {
 }
 
 class _PomodoroScreenState extends State<PomodoroScreen> {
+  // These are suggested initial values for the Pomodoro timer.
   int _pomodoroDuration = 25;
   int _shortBreakDuration = 5;
   int _longBreakDuration = 10;
