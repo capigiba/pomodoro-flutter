@@ -49,14 +49,15 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
 
   void _startTimer() {
     // TODO: Implement the logic to start the timer
-  }
-
-  void _pauseTimer() {
-    // TODO: Implement the logic to pause the timer
+    // Start the timer based on the selected mode (Pomodoro, Short Break, or Long Break).
+    // Use a timer or a periodic function to update the remaining time and trigger
+    // the appropriate actions when each interval is completed.
   }
 
   void _resetTimer() {
     // TODO: Implement the logic to reset the timer
+    // Reset the timer to its initial state, clearing any ongoing intervals and
+    // resetting the completed cycles count.
   }
 
   void _configureDurations() {
@@ -65,6 +66,8 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
 
   void _showNotification(String title, String body) {
     // TODO: Implement the logic to show a local notification
+    // Display a local notification when each interval is completed, informing
+    // the user about the end of the Pomodoro, Short Break, or Long Break.
   }
 
   @override
@@ -155,6 +158,9 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
     return ElevatedButton(
       onPressed: () {
         // TODO: Implement button functionality
+        // Implement the functionality for the "pomodoro", "short break", and
+        // "long break" buttons to switch between the different modes and
+        // update the timer accordingly.
       },
       child: Text(
         text,
