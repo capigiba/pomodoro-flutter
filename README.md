@@ -1,4 +1,4 @@
-# calculator
+# Pomodoro
 
 A Simple Pomodoro App for Flutter Learning Practice.
 
