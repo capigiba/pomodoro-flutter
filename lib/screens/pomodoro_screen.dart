@@ -3,6 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:async';
 import '../widgets/custom_button.dart';
 import '../services/notification_service.dart';
+import '../models/timer_model.dart';
 
 class PomodoroScreen extends StatefulWidget {
   @override
@@ -10,24 +11,18 @@ class PomodoroScreen extends StatefulWidget {
 }
 
 class _PomodoroScreenState extends State<PomodoroScreen> {
-  int _pomodoroDuration = 25;
-  int _shortBreakDuration = 5;
-  int _longBreakDuration = 15;
-
-  int _remainingTime = 0;
-  bool _isWorking = true;
-  bool _isBreak = false;
-
-  int _completedCycles = 0;
-  int _pomodoroCount = 0;
-  final int _cyclesUntilLongBreak = 4;
-
+  late TimerModel _timerModel;
   late NotificationService _notificationService;
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
+    _timerModel = TimerModel(
+      pomodoroDuration: 25,
+      shortBreakDuration: 5,
+      longBreakDuration: 15,
+    );
     _notificationService = NotificationService();
     _resetTimer();
   }
@@ -38,32 +33,32 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
     }
 
     setState(() {
-      if (_isWorking) {
-        _remainingTime = _pomodoroDuration * 60;
-      } else if (_isBreak && _pomodoroCount % _cyclesUntilLongBreak == 0) {
-        _remainingTime = _longBreakDuration * 60;
+      if (_timerModel.isWorking) {
+        _timerModel.remainingTime = _timerModel.pomodoroDuration * 60;
+      } else if (_timerModel.isWorking &&
+          _timerModel.completedCycles % _timerModel.cyclesUntilLongBreak == 0) {
+        _timerModel.remainingTime = _timerModel.longBreakDuration * 60;
       } else {
-        _remainingTime = _shortBreakDuration * 60;
+        _timerModel.remainingTime = _timerModel.shortBreakDuration * 60;
       }
     });
 
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
       setState(() {
-        if (_remainingTime > 0) {
-          _remainingTime--;
+        if (_timerModel.remainingTime > 0) {
+          _timerModel.remainingTime--;
         } else {
           _timer?.cancel();
           _notificationService.showNotification(
-              _isWorking ? 'Pomodoro Completed' : 'Break Completed',
-              _isWorking ? 'Time for a break!' : 'Time to get back to work!');
-          if (_isWorking) {
-            _completedCycles++;
-            _pomodoroCount++;
-            _isWorking = false;
-            _isBreak = true;
+              _timerModel.isWorking ? 'Pomodoro Completed' : 'Break Completed',
+              _timerModel.isWorking
+                  ? 'Time for a break!'
+                  : 'Time to get back to work!');
+          if (_timerModel.isWorking) {
+            _timerModel.completedCycles++;
+            _timerModel.isWorking = false;
           } else {
-            _isWorking = true;
-            _isBreak = false;
+            _timerModel.isWorking = true;
           }
           _startTimer();
         }
@@ -74,11 +69,9 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
   void _resetTimer() {
     setState(() {
       _timer?.cancel();
-      _remainingTime = 0;
-      _completedCycles = 0;
-      _pomodoroCount = 0;
-      _isWorking = true;
-      _isBreak = false;
+      _timerModel.remainingTime = 0;
+      _timerModel.completedCycles = 0;
+      _timerModel.isWorking = true;
     });
   }
 
@@ -91,19 +84,23 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildDurationField('Pomodoro Duration (minutes)', _pomodoroDuration, (value) {
+              _buildDurationField(
+                  'Pomodoro Duration (minutes)', _timerModel.pomodoroDuration,
+                  (value) {
                 setState(() {
-                  _pomodoroDuration = int.tryParse(value) ?? 25;
+                  _timerModel.pomodoroDuration = int.tryParse(value) ?? 25;
                 });
               }),
-              _buildDurationField('Short Break Duration (minutes)', _shortBreakDuration, (value) {
+              _buildDurationField('Short Break Duration (minutes)',
+                  _timerModel.shortBreakDuration, (value) {
                 setState(() {
-                  _shortBreakDuration = int.tryParse(value) ?? 5;
+                  _timerModel.shortBreakDuration = int.tryParse(value) ?? 5;
                 });
               }),
-              _buildDurationField('Long Break Duration (minutes)', _longBreakDuration, (value) {
+              _buildDurationField('Long Break Duration (minutes)',
+                  _timerModel.longBreakDuration, (value) {
                 setState(() {
-                  _longBreakDuration = int.tryParse(value) ?? 15;
+                  _timerModel.longBreakDuration = int.tryParse(value) ?? 15;
                 });
               }),
             ],
@@ -121,7 +118,8 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
     );
   }
 
-  Widget _buildDurationField(String label, int initialValue, ValueChanged<String> onChanged) {
+  Widget _buildDurationField(
+      String label, int initialValue, ValueChanged<String> onChanged) {
     return TextField(
       decoration: InputDecoration(labelText: label),
       keyboardType: TextInputType.number,
@@ -146,16 +144,30 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CustomButton(
-                      text: 'pomodoro', isSelected: _isWorking && !_isBreak, onPressed: _startTimer),
+                      text: 'pomodoro',
+                      isSelected: _timerModel.isWorking &&
+                          _timerModel.remainingTime ==
+                              _timerModel.pomodoroDuration * 60,
+                      onPressed: _startTimer),
                   SizedBox(width: 10),
-                  CustomButton(text: 'short break', isSelected: _isBreak && _pomodoroCount % _cyclesUntilLongBreak != 0, onPressed: _startTimer),
+                  CustomButton(
+                      text: 'short break',
+                      isSelected: !_timerModel.isWorking &&
+                          _timerModel.remainingTime ==
+                              _timerModel.shortBreakDuration * 60,
+                      onPressed: _startTimer),
                   SizedBox(width: 10),
-                  CustomButton(text: 'long break', isSelected: _isBreak && _pomodoroCount % _cyclesUntilLongBreak == 0, onPressed: _startTimer),
+                  CustomButton(
+                      text: 'long break',
+                      isSelected: !_timerModel.isWorking &&
+                          _timerModel.remainingTime ==
+                              _timerModel.longBreakDuration * 60,
+                      onPressed: _startTimer),
                 ],
               ),
               SizedBox(height: 20),
               Text(
-                '${(_remainingTime ~/ 60).toString().padLeft(2, '0')}:${(_remainingTime % 60).toString().padLeft(2, '0')}',
+                '${(_timerModel.remainingTime ~/ 60).toString().padLeft(2, '0')}:${(_timerModel.remainingTime % 60).toString().padLeft(2, '0')}',
                 style: TextStyle(
                   fontSize: 80,
                   color: Colors.white,
@@ -193,7 +205,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
               ),
               SizedBox(height: 20),
               Text(
-                'Completed Pomodoro Cycles: $_completedCycles',
+                'Completed Pomodoro Cycles: ${_timerModel.completedCycles}',
                 style: TextStyle(
                   fontSize: 20,
                   color: Colors.white,
